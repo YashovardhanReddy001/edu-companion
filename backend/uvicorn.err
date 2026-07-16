@@ -1,0 +1,7 @@
+No Langfuse client with public key pk-lf-aa58eea3-3526-4a51-9e9b-56b16dbdb415 has been initialized. Skipping tracing for decorated function.
+INFO:     Started server process [25716]
+INFO:     Waiting for application startup.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|##########| 103/103 [00:00<00:00, 54015.17it/s]
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

@@ -2,14 +2,35 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+from langfuse import Langfuse
+from langfuse.langchain import CallbackHandler
 import os
 import shutil
 
-from rag_engine import process_and_store_pdf
-from graph import graph, State
+try:
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass
+
+from backend.rag_engine import process_and_store_pdf
+from backend.graph import graph, State
 from langchain_core.messages import HumanMessage, AIMessage
+from backend.rag_engine import get_vector_store
 
 app = FastAPI(title="EduCompanion API")
+
+# Initialize the Langfuse client before creating the callback handler.
+langfuse_client = Langfuse(
+    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+    base_url=os.getenv("LANGFUSE_HOST"),
+)
+
+# Langfuse's Langchain callback handler expects `public_key` (and optional trace_context).
+langfuse_handler = CallbackHandler(
+    public_key=os.getenv("LANGFUSE_PUBLIC_KEY")
+)
 
 # Configure CORS for Vite frontend
 app.add_middleware(
@@ -37,6 +58,10 @@ class ChatResponse(BaseModel):
     quiz_active: bool
     last_score: int
     metadata: dict
+
+# The `/chat` route below is the primary chat handler. We integrate Langfuse
+# by passing the `langfuse_handler` in the `config.callbacks` when invoking
+# the graph asynchronously.
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -77,11 +102,15 @@ async def chat_endpoint(req: ChatRequest):
         "metadata": {}
     }
     
-    config = {"configurable": {"thread_id": req.thread_id}}
-    
+    # Include Langfuse callback in the invocation config so traces are sent
+    config = {
+        "configurable": {"thread_id": req.thread_id},
+        "callbacks": [langfuse_handler]
+    }
+
     try:
-        # Run graph
-        final_state = graph.invoke(initial_state, config=config)
+        # Run graph asynchronously so we can attach Langfuse callbacks
+        final_state = await graph.ainvoke(initial_state, config=config)
         
         # Format outgoing messages
         out_messages = []
@@ -102,4 +131,17 @@ async def chat_endpoint(req: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+    # In development we used `--reload` which restarts the process and re-initializes
+    # heavy models often. For a stable, faster runtime disable reload.
+    uvicorn.run("main:app", host="localhost", port=8000, reload=False)
+
+
+# Preload heavy models on startup to avoid per-request loading latency
+@app.on_event("startup")
+async def _preload_models():
+    try:
+        # Warm the embedding model and vector store once at startup
+        get_vector_store()
+        print("Preloaded embedding model and vector store.")
+    except Exception as e:
+        print(f"Warning: failed to preload vector store: {e}")

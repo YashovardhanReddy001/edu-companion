@@ -9,3 +9,5 @@ pypdf
 python-dotenv
 python-multipart
 langchain-community
+langchain_chroma
+langfuse

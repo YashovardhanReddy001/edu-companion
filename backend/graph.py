@@ -6,7 +6,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-from rag_engine import retrieve_context
+from backend.rag_engine import retrieve_context
 
 load_dotenv()
 
