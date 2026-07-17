@@ -1,90 +1,115 @@
-# EduCompanion
+# EduCompanion 🎓
 
-EduCompanion is a RAG-based learning assistant that lets you upload study PDFs, ask questions, and generate quiz-style interactions from your course material.
+EduCompanion is a single-agent, local intelligent tutoring system designed to help students learn, test their knowledge, and deeply understand their course materials. Built for the IBM SkillsBuild internship, it uses a deterministic AI workflow to provide tailored RAG-based chatting, automated quiz generation, and personalized feedback.
 
-## Features
+---
 
-- PDF upload and document chunking
-- Retrieval-augmented chat over uploaded material
-- Ordinary chat fallback when no study content is available
-- Quiz generation and answer evaluation
-- FastAPI backend with Groq-powered LLM responses
-- Vite + React frontend
+## ✨ Features
 
-## Project Structure
+- **Document Processing**: Upload any PDF course material, which is embedded locally using HuggingFace models and stored in ChromaDB.
+- **Intelligent Routing**: The AI determines if you want to chat normally or if you are requesting a quiz.
+- **Automated Quizzes**: Generates multiple-choice questions dynamically based on the uploaded context.
+- **Tailored Feedback Loop**:
+  - 🟢 **Reward**: Answer correctly (>= 70%) and get a gamified, enthusiastic congratulatory response.
+  - 🟠 **Relearn**: Answer incorrectly (< 70%) and the AI will break down the concept step-by-step to reteach it simply.
+- **Premium UI**: Clean, modern React interface built with TailwindCSS, featuring distinct aesthetic states for different types of AI feedback.
 
-- `backend/` - FastAPI app, graph logic, and retrieval pipeline
-- `frontend/` - React UI built with Vite
+---
 
-## Requirements
+## 🏗️ Architecture
 
-- Python 3.13+ with the project virtual environment
-- Node.js 18+
-- A valid `GROQ_API_KEY` in the backend environment
+EduCompanion relies on a strict LangGraph state machine rather than a generic autonomous agent. This ensures a highly deterministic and educational flow.
 
-## Setup
+```mermaid
+graph TD
+    %% Nodes
+    User([User Message])
+    Router[Router Node<br>Intent Analysis]
+    RAG[RAG Chat Node<br>Standard QA]
+    QuizGen[Quiz Generator Node]
+    Eval[Evaluator Node<br>Score 0-100]
+    Reward[Reward Node<br>Gamified Congratulation]
+    Relearn[Relearn Node<br>Step-by-step Reteach]
+    
+    %% Edges
+    User --> |Is Quiz Active? No| Router
+    User --> |Is Quiz Active? Yes| Eval
 
-### Backend
-
-```powershell
-cd backend
-..\.venv\Scripts\python.exe -m pip install -r requirements.txt
+    Router -- "intent == chat" --> RAG
+    Router -- "intent == quiz" --> QuizGen
+    
+    Eval -- "score >= 70" --> Reward
+    Eval -- "score < 70" --> Relearn
+    
+    classDef node fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px,color:#334155;
+    classDef start fill:#e2e8f0,stroke:#94a3b8,stroke-width:2px,color:#0f172a;
+    classDef reward fill:#d1fae5,stroke:#34d399,stroke-width:2px,color:#065f46;
+    classDef relearn fill:#fef3c7,stroke:#fbbf24,stroke-width:2px,color:#92400e;
+    classDef quiz fill:#e0e7ff,stroke:#818cf8,stroke-width:2px,color:#3730a3;
+    
+    class User start;
+    class Router,RAG,Eval node;
+    class Reward reward;
+    class Relearn relearn;
+    class QuizGen quiz;
 ```
 
-Create a `.env` file inside `backend/` with your Groq key:
+---
 
-```env
-GROQ_API_KEY=your_groq_api_key_here
+## 🛠️ Tech Stack
+
+**Backend**
+- Python 3.11+
+- FastAPI & Uvicorn
+- LangGraph & LangChain (Groq LLM)
+- ChromaDB (Local Vector Store)
+- HuggingFace Embeddings (`all-MiniLM-L6-v2`)
+
+**Frontend**
+- React 18 (TypeScript)
+- Vite
+- TailwindCSS v4
+- Lucide React (Icons)
+
+---
+
+## 🚀 Getting Started (Local Development)
+
+### 1. Clone & Setup Backend
+```bash
+cd edu-companion/backend
+python -m venv venv
+# Activate the virtual environment
+# Windows: venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
+
+pip install -r requirements.txt
 ```
+*Note: Create a `.env` file in the `backend` folder and add your Groq API key: `GROQ_API_KEY=your_key_here`*
 
-### Frontend
+### 2. Start the Backend
+```bash
+uvicorn main:app --reload
+```
+*Runs on http://localhost:8000*
 
-```powershell
-cd frontend
+### 3. Setup & Start Frontend
+In a new terminal window:
+```bash
+cd edu-companion/frontend
 npm install
+npm run dev
 ```
+*Runs on http://localhost:5173*
 
-## Run Locally
+---
 
-### Start Backend
+## 📸 Screenshots
 
-From the repository root:
+![alt text](image.png)
 
-```powershell
-cd backend
-..\.venv\Scripts\python.exe main.py
-```
+![alt text](image-1.png)
+### Reward for a qiz
 
-The backend runs on:
-
-- `http://localhost:8000`
-
-### Start Frontend
-
-From the repository root:
-
-```powershell
-npm --prefix frontend run dev
-```
-
-The frontend runs on:
-
-- `http://localhost:5173`
-- If that port is busy, Vite may switch to the next available port such as `http://localhost:5174`
-
-## API Endpoints
-
-- `POST /upload` - upload a PDF file
-- `POST /chat` - send a chat message
-
-## How It Works
-
-1. You upload a PDF.
-2. The backend chunks and stores the content in ChromaDB.
-3. Chat requests try to retrieve relevant chunks.
-4. If no relevant document content exists, the app falls back to ordinary chat through Groq.
-5. If content exists, the LLM answers using the retrieved context.
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE).
+![alt text](image-2.png)
+### Reteach if wrong

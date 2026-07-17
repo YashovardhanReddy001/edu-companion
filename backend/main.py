@@ -13,10 +13,10 @@ try:
 except ImportError:
     pass
 
-from backend.rag_engine import process_and_store_pdf
-from backend.graph import graph, State
+from .rag_engine import process_and_store_pdf
+from .graph import graph, State
 from langchain_core.messages import HumanMessage, AIMessage
-from backend.rag_engine import get_vector_store
+from .rag_engine import get_vector_store
 
 app = FastAPI(title="EduCompanion API")
 
