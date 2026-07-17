@@ -107,9 +107,8 @@ npm run dev
 ## 📸 Screenshots
 
 ![alt text](image.png)
-
+### Chat Mode
 ![alt text](image-1.png)
-### Reward for a qiz
-
+### Reward for a quiz
 ![alt text](image-2.png)
 ### Reteach if wrong
